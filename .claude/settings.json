@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/c/Program Files/nodejs/node.exe\" node_modules/wrangler/bin/wrangler.js d1 execute DB --local --file=drizzle/0000_big_grandmaster.sql)",
+      "Bash(\"/c/Program Files/nodejs/node.exe\" node_modules/wrangler/bin/wrangler.js d1 execute DB --local --file=drizzle/0001_friendly_spyke.sql)",
+      "Bash(\"/c/Program Files/nodejs/node.exe\" node_modules/wrangler/bin/wrangler.js d1 execute DB --local --file=seed.sql)"
+    ]
+  }
+}

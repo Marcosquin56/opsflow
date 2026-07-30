@@ -1,0 +1,136 @@
+{
+  "info": {
+    "name": "OpsFlow API",
+    "description": "Backend de OpsFlow: login/registro con sesiones por cookie, solicitudes con email automático, y automatizaciones. Corré `pnpm dev` (o el dev server ya activo en localhost:5173) antes de probar.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5173" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Registrarse",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nuevo Usuario\",\n  \"email\": \"nuevo@opsflow.dev\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+            "description": "Crea una cuenta nueva con rol Solicitante y arranca sesión automáticamente. Falla con 409 si el email ya existe, 400 si falta algo o la contraseña tiene menos de 8 caracteres."
+          }
+        },
+        {
+          "name": "Iniciar sesión (Administrador)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"administrador@opsflow.dev\",\n  \"password\": \"opsflow123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Iniciar sesión (Analista)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"analista@opsflow.dev\",\n  \"password\": \"opsflow123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Iniciar sesión (Solicitante)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"solicitante@opsflow.dev\",\n  \"password\": \"opsflow123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Solicitudes",
+      "item": [
+        {
+          "name": "Listar solicitudes",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/requests", "host": ["{{baseUrl}}"], "path": ["api", "requests"] },
+            "description": "Requiere sesión activa (401 si no hay login previo en esta pestaña de Postman)."
+          }
+        },
+        {
+          "name": "Crear solicitud",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Probar desde Postman\",\n  \"category\": \"Automatización\",\n  \"priority\": \"Media\",\n  \"description\": \"Solicitud creada para probar el backend.\",\n  \"requesterName\": \"Sofía Acosta\",\n  \"requesterInitials\": \"SA\",\n  \"requesterEmail\": \"marcosnoob27@gmail.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/requests", "host": ["{{baseUrl}}"], "path": ["api", "requests"] },
+            "description": "Dispara el email de notificación de estado \"Nuevo\" si RESEND_API_KEY está configurada."
+          }
+        },
+        {
+          "name": "Cambiar estado",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"OPS-1841\",\n  \"status\": \"En progreso\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/requests/status", "host": ["{{baseUrl}}"], "path": ["api", "requests", "status"] },
+            "description": "El autor del cambio se toma de la sesión activa, no del body. Dispara email al solicitante."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Automatizaciones",
+      "item": [
+        {
+          "name": "Listar automatizaciones",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/automations", "host": ["{{baseUrl}}"], "path": ["api", "automations"] }
+          }
+        },
+        {
+          "name": "Activar/pausar automatización",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"AUTO-1\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/automations/toggle", "host": ["{{baseUrl}}"], "path": ["api", "automations", "toggle"] }
+          }
+        }
+      ]
+    }
+  ]
+}
