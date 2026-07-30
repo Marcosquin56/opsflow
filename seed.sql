@@ -1,0 +1,9 @@
+INSERT INTO users (id, email, password_hash, password_salt, name, initials, role, area, color) VALUES
+('usr-mq', 'administrador@opsflow.dev', '9ebb8298b377662e440043fc1233b369b37e4107ee0c2c894c030ce54acc6365', 'effe7c2b1f0f4bc21d23fd3f15d7a553', 'Marcos Quintana', 'MQ', 'Administrador', 'Automatización', 'violet'),
+('usr-lb', 'analista@opsflow.dev', 'cc0721041e4020701028f7892cb3e97837081576375eba8fc97ed0ccbe416b23', '35482ac68bcf1a6beab1af2f4364d857', 'Lucía Benítez', 'LB', 'Analista', 'Finanzas', 'blue'),
+('usr-df', 'analista2@opsflow.dev', 'efe92cf0073b27ef613ccfa1ce8ec440d8552db514a241a6e0b3f28287261877', 'ab1b8a0e7aae5ce175436e349d90fe23', 'Diego Ferreira', 'DF', 'Analista', 'Operaciones', 'orange'),
+('usr-sa', 'solicitante@opsflow.dev', '96af1890301f845b6d3eaab07d019241fa6dcbec70042dc784fb1e2dbb377090', '27b50eddd494a1109e5bfcb69371a211', 'Sofía Acosta', 'SA', 'Solicitante', 'Recursos Humanos', 'green');
+
+INSERT INTO requests (id, title, category, requester_name, requester_email, requester_initials, assignee_name, assignee_initials, status, priority, description, due, created_at, updated_at) VALUES
+('OPS-1842', 'Automatizar conciliación del reporte mensual', 'Automatización', 'Sofía Acosta', 'marcosnoob27@gmail.com', 'SA', 'Marcos Quintana', 'MQ', 'En progreso', 'Alta', 'El equipo necesita validar y consolidar tres archivos de Excel antes del cierre mensual. El proceso actual toma cerca de dos horas y genera errores de formato.', 'Hoy, 17:00', datetime('now', '-1 day'), datetime('now', '-18 minutes')),
+('OPS-1841', 'Error al generar facturas del proveedor', 'Incidente', 'Diego Ferreira', 'marcosnoob27@gmail.com', 'DF', 'Lucía Benítez', 'LB', 'En análisis', 'Crítica', 'La generación por lote se detiene al procesar documentos con una referencia de compra duplicada. Hay 28 facturas pendientes.', 'Hoy, 14:30', datetime('now', '-1 day'), datetime('now', '-42 minutes'));

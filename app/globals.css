@@ -345,6 +345,43 @@ textarea:focus-visible {
   color: #57cbc0;
 }
 
+.role-menu .profile-summary {
+  display: grid;
+  grid-template-columns: 1.8rem 1fr;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem;
+  margin-bottom: 0.2rem;
+  border-bottom: 1px solid #393a46;
+  color: #d9d9e1;
+}
+
+.role-menu .profile-summary > span {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #3c3d4b;
+  font-size: 0.57rem;
+  font-weight: 800;
+}
+
+.role-menu .profile-summary strong,
+.role-menu .profile-summary small {
+  display: block;
+}
+
+.role-menu .profile-summary strong {
+  font-size: 0.67rem;
+}
+
+.role-menu .profile-summary small {
+  margin-top: 0.12rem;
+  color: #828492;
+  font-size: 0.56rem;
+}
+
 .avatar {
   display: inline-grid;
   width: 2.25rem;
@@ -2293,6 +2330,47 @@ textarea:focus-visible {
   .detail-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.auth-page {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 1.5rem;
+  background: var(--sidebar);
+}
+
+.auth-card {
+  width: min(100%, 380px);
+}
+
+.auth-card header {
+  justify-content: flex-start;
+  gap: 0.15rem;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.auth-hint {
+  margin: 0 1.4rem 1.4rem;
+}
+
+.auth-card footer {
+  justify-content: stretch;
+}
+
+.auth-card footer .primary-button {
+  width: 100%;
+}
+
+.auth-error {
+  margin: 0;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.45rem;
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 0.62rem;
+  font-weight: 700;
 }
 
 @media (prefers-reduced-motion: reduce) {
