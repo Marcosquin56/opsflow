@@ -2351,6 +2351,28 @@ textarea:focus-visible {
   align-items: flex-start;
 }
 
+.auth-tabs {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.9rem 1.4rem 0;
+}
+
+.auth-tabs button {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.63rem;
+  font-weight: 700;
+}
+
+.auth-tabs button.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
 .auth-hint {
   margin: 0 1.4rem 1.4rem;
 }
