@@ -1,16 +1,32 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 
 type Role = "Administrador" | "Analista" | "Solicitante";
-type Status = "Nuevo" | "En análisis" | "En progreso" | "Resuelto";
+type Status = "Nuevo" | "En análisis" | "En progreso" | "Resuelto" | "Bloqueado";
 type Priority = "Crítica" | "Alta" | "Media" | "Baja";
-type View = "dashboard" | "requests" | "team" | "analytics";
+type View = "dashboard" | "requests" | "automations" | "team" | "analytics";
 
 type Activity = {
   author: string;
   action: string;
   time: string;
+};
+
+type AutomationRule = {
+  id: string;
+  name: string;
+  description: string;
+  trigger: string;
+  action: string;
+  owner: string;
+  ownerInitials: string;
+  ownerColor: string;
+  status: "active" | "paused";
+  category: string;
+  runsThisWeek: number;
+  lastRun: string;
+  impact: string;
 };
 
 type RequestItem = {
@@ -240,6 +256,73 @@ const initialRequests: RequestItem[] = [
   },
 ];
 
+const initialAutomations: AutomationRule[] = [
+  {
+    id: "AUTO-1",
+    name: "Enrutamiento por categoría",
+    description:
+      "Asigna automáticamente cada solicitud nueva según su categoría y la carga actual del equipo.",
+    trigger: "Nueva solicitud creada",
+    action: "Asigna al responsable con menor carga en esa categoría",
+    owner: "Marcos Quintana",
+    ownerInitials: "MQ",
+    ownerColor: "violet",
+    status: "active",
+    category: "Automatización",
+    runsThisWeek: 34,
+    lastRun: "hace 6 min",
+    impact: "Tiempo de asignación: 2h → 4 min",
+  },
+  {
+    id: "AUTO-2",
+    name: "Escalamiento de solicitudes críticas",
+    description:
+      "Si una solicitud crítica pasa 2 horas sin actividad, sube la prioridad y avisa al responsable.",
+    trigger: "Prioridad Crítica sin actualizar 2h",
+    action: "Escala prioridad y notifica al responsable",
+    owner: "Lucía Benítez",
+    ownerInitials: "LB",
+    ownerColor: "blue",
+    status: "active",
+    category: "Incidente",
+    runsThisWeek: 9,
+    lastRun: "hace 42 min",
+    impact: "0 incumplimientos de SLA esta semana",
+  },
+  {
+    id: "AUTO-3",
+    name: "Conciliación de reportes mensuales",
+    description:
+      "Genera y adjunta el reporte consolidado del cierre de mes a partir de las tres planillas de origen.",
+    trigger: "Cierre de mes (día 28)",
+    action: "Genera y adjunta el reporte consolidado (ver OPS-1842)",
+    owner: "Marcos Quintana",
+    ownerInitials: "MQ",
+    ownerColor: "violet",
+    status: "active",
+    category: "Automatización",
+    runsThisWeek: 1,
+    lastRun: "22 jul, 09:00",
+    impact: "Ahorra ~2h por ejecución",
+  },
+  {
+    id: "AUTO-4",
+    name: "Recordatorio de solicitudes bloqueadas",
+    description:
+      "Avisa al solicitante y al responsable cuando una solicitud lleva más de 24 horas bloqueada.",
+    trigger: "Estado Bloqueado por más de 24h",
+    action: "Envía recordatorio al solicitante y al responsable",
+    owner: "Diego Ferreira",
+    ownerInitials: "DF",
+    ownerColor: "orange",
+    status: "paused",
+    category: "Incidente",
+    runsThisWeek: 0,
+    lastRun: "hace 5 días",
+    impact: "Pausada temporalmente",
+  },
+];
+
 const roleProfiles: Record<
   Role,
   { name: string; initials: string; helper: string }
@@ -261,17 +344,19 @@ const roleProfiles: Record<
   },
 };
 
-const navItems: { id: View; label: string; icon: string }[] = [
-  { id: "dashboard", label: "Resumen", icon: "⌂" },
-  { id: "requests", label: "Solicitudes", icon: "▤" },
-  { id: "team", label: "Equipo", icon: "◉" },
-  { id: "analytics", label: "Métricas", icon: "↗" },
+const navItems: { id: View; label: string; icon: IconName }[] = [
+  { id: "dashboard", label: "Resumen", icon: "home" },
+  { id: "requests", label: "Solicitudes", icon: "inbox" },
+  { id: "automations", label: "Automatizaciones", icon: "zap" },
+  { id: "team", label: "Equipo", icon: "users" },
+  { id: "analytics", label: "Métricas", icon: "activity" },
 ];
 
 const statusOrder: Status[] = [
   "Nuevo",
   "En análisis",
   "En progreso",
+  "Bloqueado",
   "Resuelto",
 ];
 
@@ -284,6 +369,93 @@ function statusClass(status: Status) {
     .toLowerCase()
     .replace(" ", "-")
     .replace("á", "a")}`;
+}
+
+type IconName =
+  | "home"
+  | "inbox"
+  | "users"
+  | "activity"
+  | "zap"
+  | "search"
+  | "bell"
+  | "chevron-down"
+  | "plus"
+  | "check"
+  | "arrow-right"
+  | "alert-triangle"
+  | "clock";
+
+const iconPaths: Record<IconName, ReactNode> = {
+  home: (
+    <>
+      <path d="M3 11l9-8 9 8" />
+      <path d="M5 10v10h14V10" />
+    </>
+  ),
+  inbox: (
+    <>
+      <path d="M3 5h18v10.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5Z" />
+      <path d="M3 12h4.5l1.5 2.5h6L16.5 12H21" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 20c0-3.6 2.9-6 5.5-6s5.5 2.4 5.5 6" />
+      <circle cx="17" cy="9" r="2.6" />
+      <path d="M15 20c0-2.8 1.6-4.8 3.5-5.3" />
+    </>
+  ),
+  activity: <path d="M3 17l4-6 4 3 5-8 5 6" />,
+  zap: <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="currentColor" stroke="none" />,
+  search: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M20 20l-4.3-4.3" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z" />
+      <path d="M9.5 17a2.5 2.5 0 0 0 5 0" />
+    </>
+  ),
+  "chevron-down": <path d="M5 8l7 7 7-7" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  check: <path d="M4 12l5 5L20 7" />,
+  "arrow-right": <path d="M4 12h14M13 6l6 6-6 6" />,
+  "alert-triangle": (
+    <>
+      <path d="M12 3 2 20h20L12 3Z" />
+      <path d="M12 9v5" />
+      <path d="M12 17.5h.01" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3.5 2" />
+    </>
+  ),
+};
+
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.75}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      {iconPaths[name]}
+    </svg>
+  );
 }
 
 function Avatar({
@@ -314,7 +486,9 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [showRoles, setShowRoles] = useState(false);
+  const [showPalette, setShowPalette] = useState(false);
   const [toast, setToast] = useState("");
+  const [automations, setAutomations] = useState(initialAutomations);
 
   const profile = roleProfiles[role];
   const selected = requests.find((request) => request.id === selectedId) ?? null;
@@ -357,6 +531,30 @@ export default function Home() {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
   }
+
+  function toggleAutomation(id: string) {
+    const rule = automations.find((item) => item.id === id);
+    if (!rule) return;
+    const nextStatus = rule.status === "active" ? "paused" : "active";
+    setAutomations((current) =>
+      current.map((item) => (item.id === id ? { ...item, status: nextStatus } : item)),
+    );
+    notify(`"${rule.name}" ${nextStatus === "active" ? "activada" : "pausada"}`);
+  }
+
+  useEffect(() => {
+    function handleKeydown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setShowPalette((current) => !current);
+      }
+      if (event.key === "Escape") {
+        setShowPalette(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, []);
 
   function changeStatus(nextStatus: Status) {
     if (!selected) return;
@@ -437,7 +635,9 @@ export default function Home() {
               onClick={() => setActiveView(item.id)}
               type="button"
             >
-              <span aria-hidden="true">{item.icon}</span>
+              <span aria-hidden="true">
+                <Icon name={item.icon} />
+              </span>
               {item.label}
               {item.id === "requests" && <small>{metrics.open}</small>}
             </button>
@@ -465,7 +665,9 @@ export default function Home() {
             <strong>{profile.name}</strong>
             <small>{role}</small>
           </span>
-          <b aria-hidden="true">⌄</b>
+          <b aria-hidden="true">
+            <Icon name="chevron-down" size={14} />
+          </b>
         </button>
 
         {showRoles && (
@@ -488,7 +690,11 @@ export default function Home() {
                   <strong>{item}</strong>
                   <small>{roleProfiles[item].helper}</small>
                 </div>
-                {role === item && <b>✓</b>}
+                {role === item && (
+                  <b>
+                    <Icon name="check" size={13} />
+                  </b>
+                )}
               </button>
             ))}
           </div>
@@ -502,13 +708,22 @@ export default function Home() {
             <strong>OpsFlow</strong>
           </div>
           <label className="global-search">
-            <span aria-hidden="true">⌕</span>
+            <span aria-hidden="true">
+              <Icon name="search" size={15} />
+            </span>
             <input
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por título, ID o categoría..."
               value={search}
             />
-            <kbd>⌘ K</kbd>
+            <button
+              aria-label="Abrir paleta de comandos"
+              className="kbd-button"
+              onClick={() => setShowPalette(true)}
+              type="button"
+            >
+              <kbd>⌘ K</kbd>
+            </button>
           </label>
           <div className="top-actions">
             <span className="demo-pill">Demo interactiva</span>
@@ -517,7 +732,7 @@ export default function Home() {
               aria-label="Notificaciones"
               type="button"
             >
-              ♧
+              <Icon name="bell" size={17} />
               <span />
             </button>
             <button
@@ -525,7 +740,9 @@ export default function Home() {
               onClick={() => setShowCreate(true)}
               type="button"
             >
-              <span aria-hidden="true">＋</span>
+              <span aria-hidden="true">
+                <Icon name="plus" size={16} />
+              </span>
               Nueva solicitud
             </button>
           </div>
@@ -533,6 +750,7 @@ export default function Home() {
 
         {activeView === "dashboard" && (
           <Dashboard
+            automations={automations}
             metrics={metrics}
             requests={requests}
             setActiveView={setActiveView}
@@ -550,6 +768,9 @@ export default function Home() {
           />
         )}
 
+        {activeView === "automations" && (
+          <AutomationsView automations={automations} toggle={toggleAutomation} />
+        )}
         {activeView === "team" && <TeamView />}
         {activeView === "analytics" && <AnalyticsView requests={requests} />}
       </main>
@@ -567,9 +788,21 @@ export default function Home() {
         <CreateModal close={() => setShowCreate(false)} submit={createRequest} />
       )}
 
+      {showPalette && (
+        <CommandPalette
+          close={() => setShowPalette(false)}
+          requests={requests}
+          setActiveView={setActiveView}
+          setSelectedId={setSelectedId}
+          setShowCreate={setShowCreate}
+        />
+      )}
+
       {toast && (
         <div className="toast" role="status">
-          <span>✓</span>
+          <span>
+            <Icon name="check" size={14} />
+          </span>
           {toast}
         </div>
       )}
@@ -578,11 +811,13 @@ export default function Home() {
 }
 
 function Dashboard({
+  automations,
   metrics,
   requests,
   setActiveView,
   setSelectedId,
 }: {
+  automations: AutomationRule[];
   metrics: {
     open: number;
     critical: number;
@@ -593,6 +828,7 @@ function Dashboard({
   setActiveView: (view: View) => void;
   setSelectedId: (id: string) => void;
 }) {
+  const activeAutomations = automations.filter((rule) => rule.status === "active");
   const openRequests = requests.filter((request) => request.status !== "Resuelto");
 
   return (
@@ -612,28 +848,28 @@ function Dashboard({
       <section className="metrics-grid" aria-label="Indicadores principales">
         <MetricCard
           detail="+2 desde ayer"
-          icon="↗"
+          icon="activity"
           label="Solicitudes abiertas"
           tone="violet"
           value={metrics.open}
         />
         <MetricCard
           detail="requiere atención"
-          icon="!"
+          icon="alert-triangle"
           label="Prioridad crítica"
           tone="red"
           value={metrics.critical}
         />
         <MetricCard
           detail="dentro del SLA"
-          icon="⌁"
+          icon="clock"
           label="En tratamiento"
           tone="blue"
           value={metrics.progress}
         />
         <MetricCard
           detail="esta semana"
-          icon="✓"
+          icon="check"
           label="Resueltas"
           tone="green"
           value={metrics.resolved + 12}
@@ -648,7 +884,10 @@ function Dashboard({
               <h2>Solicitudes recientes</h2>
             </div>
             <button onClick={() => setActiveView("requests")} type="button">
-              Ver todas <span>→</span>
+              Ver todas
+              <span>
+                <Icon name="arrow-right" size={13} />
+              </span>
             </button>
           </div>
           <div className="request-list">
@@ -782,6 +1021,37 @@ function Dashboard({
           </div>
         </article>
       </section>
+
+      <article className="panel automation-summary">
+        <div className="panel-heading">
+          <div>
+            <span className="panel-kicker">Automatización</span>
+            <h2>Reglas activas</h2>
+          </div>
+          <button onClick={() => setActiveView("automations")} type="button">
+            Ver todas
+            <span>
+              <Icon name="arrow-right" size={13} />
+            </span>
+          </button>
+        </div>
+        <div className="automation-summary-list">
+          {activeAutomations.map((rule) => (
+            <div className="automation-summary-row" key={rule.id}>
+              <span className="automation-summary-icon">
+                <Icon name="zap" size={14} />
+              </span>
+              <span className="automation-summary-main">
+                <strong>{rule.name}</strong>
+                <small>{rule.impact}</small>
+              </span>
+              <span className="automation-summary-runs mono">
+                {rule.runsThisWeek} / sem.
+              </span>
+            </div>
+          ))}
+        </div>
+      </article>
     </div>
   );
 }
@@ -794,14 +1064,16 @@ function MetricCard({
   value,
 }: {
   detail: string;
-  icon: string;
+  icon: IconName;
   label: string;
   tone: string;
   value: number;
 }) {
   return (
     <article className="metric-card">
-      <span className={`metric-icon metric-${tone}`}>{icon}</span>
+      <span className={`metric-icon metric-${tone}`}>
+        <Icon name={icon} size={16} />
+      </span>
       <div>
         <p>{label}</p>
         <strong>{String(value).padStart(2, "0")}</strong>
@@ -896,11 +1168,80 @@ function RequestsView({
           ))
         ) : (
           <div className="empty-state">
-            <span>⌕</span>
+            <span>
+              <Icon name="search" size={20} />
+            </span>
             <h3>No encontramos solicitudes</h3>
             <p>Probá con otro texto o cambiá el filtro seleccionado.</p>
           </div>
         )}
+      </section>
+    </div>
+  );
+}
+
+function AutomationsView({
+  automations,
+  toggle,
+}: {
+  automations: AutomationRule[];
+  toggle: (id: string) => void;
+}) {
+  const activeCount = automations.filter((rule) => rule.status === "active").length;
+
+  return (
+    <div className="page">
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">Reglas y disparadores</p>
+          <h1>Automatizaciones</h1>
+          <p>Reglas que actúan sobre las solicitudes sin intervención manual.</p>
+        </div>
+        <div className="heading-badge">
+          <span className="pulse-dot" />
+          {activeCount} automatizaciones activas
+        </div>
+      </section>
+
+      <section className="automation-grid">
+        {automations.map((rule) => (
+          <article className="automation-card" key={rule.id}>
+            <div className="automation-top">
+              <span className="automation-icon">
+                <Icon name="zap" size={16} />
+              </span>
+              <button
+                aria-checked={rule.status === "active"}
+                aria-label={`Alternar ${rule.name}`}
+                className="switch"
+                data-on={rule.status === "active"}
+                onClick={() => toggle(rule.id)}
+                role="switch"
+                type="button"
+              >
+                <span className="switch-thumb" />
+              </button>
+            </div>
+            <h2>{rule.name}</h2>
+            <p>{rule.description}</p>
+            <div className="automation-flow">
+              <span>{rule.trigger}</span>
+              <Icon name="arrow-right" size={13} />
+              <span>{rule.action}</span>
+            </div>
+            <div className="automation-meta">
+              <Avatar color={rule.ownerColor} initials={rule.ownerInitials} small />
+              <span>{rule.owner}</span>
+            </div>
+            <div className="automation-stats">
+              <span>
+                <strong className="mono">{rule.runsThisWeek}</strong> ejecuciones/sem.
+              </span>
+              <span className="mono">{rule.lastRun}</span>
+            </div>
+            <p className="automation-impact">{rule.impact}</p>
+          </article>
+        ))}
       </section>
     </div>
   );
@@ -1119,6 +1460,101 @@ function RequestDrawer({
           </section>
         </div>
       </aside>
+    </div>
+  );
+}
+
+function CommandPalette({
+  close,
+  requests,
+  setActiveView,
+  setSelectedId,
+  setShowCreate,
+}: {
+  close: () => void;
+  requests: RequestItem[];
+  setActiveView: (view: View) => void;
+  setSelectedId: (id: string) => void;
+  setShowCreate: (value: boolean) => void;
+}) {
+  const [query, setQuery] = useState("");
+
+  const staticCommands = [
+    { label: "Ir a Resumen", run: () => setActiveView("dashboard") },
+    { label: "Ir a Solicitudes", run: () => setActiveView("requests") },
+    { label: "Ir a Automatizaciones", run: () => setActiveView("automations") },
+    { label: "Ir a Equipo", run: () => setActiveView("team") },
+    { label: "Ir a Métricas", run: () => setActiveView("analytics") },
+    { label: "Nueva solicitud", run: () => setShowCreate(true) },
+  ];
+
+  const term = query.trim().toLowerCase();
+  const filteredCommands = staticCommands.filter((command) =>
+    command.label.toLowerCase().includes(term),
+  );
+  const matchingRequests = term
+    ? requests
+        .filter(
+          (request) =>
+            request.title.toLowerCase().includes(term) ||
+            request.id.toLowerCase().includes(term),
+        )
+        .slice(0, 5)
+    : [];
+
+  function runAndClose(action: () => void) {
+    action();
+    close();
+  }
+
+  return (
+    <div className="modal-layer">
+      <button
+        aria-label="Cerrar"
+        className="modal-backdrop"
+        onClick={close}
+        type="button"
+      />
+      <section aria-label="Paleta de comandos" className="modal command-palette">
+        <div className="command-input">
+          <Icon name="search" size={15} />
+          <input
+            autoFocus
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Escribí un comando o buscá una solicitud..."
+            value={query}
+          />
+          <kbd>Esc</kbd>
+        </div>
+        <div className="command-list">
+          {filteredCommands.map((command) => (
+            <button
+              key={command.label}
+              onClick={() => runAndClose(command.run)}
+              type="button"
+            >
+              {command.label}
+            </button>
+          ))}
+          {matchingRequests.map((request) => (
+            <button
+              key={request.id}
+              onClick={() =>
+                runAndClose(() => {
+                  setActiveView("requests");
+                  setSelectedId(request.id);
+                })
+              }
+              type="button"
+            >
+              <span className="mono">{request.id}</span> {request.title}
+            </button>
+          ))}
+          {filteredCommands.length === 0 && matchingRequests.length === 0 && (
+            <p className="command-empty">Sin resultados para &quot;{query}&quot;</p>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
