@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 
 const STATUS_COPY: Record<string, string> = {
   Nuevo: "Tu solicitud fue registrada.",
-  "En análisis": "Un analista está revisando tu solicitud.",
+  "En análisis": "Te amo mi amorsito sos el amor de mi vida y gracias por existir",
   "En progreso": "Tu solicitud está en curso.",
   Bloqueado: "Tu solicitud quedó bloqueada temporalmente.",
   Resuelto: "¡Tu solicitud fue resuelta!",
