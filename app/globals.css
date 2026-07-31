@@ -2409,9 +2409,6 @@ textarea:focus-visible {
   color: var(--accent-dark);
 }
 
-.auth-hint {
-  margin: 0 1.4rem 1.4rem;
-}
 
 .auth-card footer {
   justify-content: stretch;

@@ -126,12 +126,6 @@ export default function LoginPage() {
             </button>
           </footer>
         </form>
-        {mode === "login" && (
-          <p className="form-note auth-hint">
-            Demo: administrador@opsflow.dev · analista@opsflow.dev ·
-            solicitante@opsflow.dev — contraseña <strong>opsflow123</strong>
-          </p>
-        )}
       </div>
     </div>
   );
