@@ -51,12 +51,23 @@ export async function sendStatusEmail({
       </p>
     </div>
   `;
+  const text = [
+    `Hola ${requesterName},`,
+    "",
+    intro,
+    "",
+    `${requestId} · ${requestTitle}`,
+    `Nuevo estado: ${status}`,
+    "",
+    "Este correo lo envía OpsFlow, una demo de portfolio.",
+  ].join("\n");
 
   const body = new URLSearchParams({
     from: `OpsFlow <notificaciones@${domain}>`,
     to,
     subject: `${requestId} actualizada a "${status}"`,
     html,
+    text,
   });
 
   try {
