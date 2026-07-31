@@ -36,6 +36,7 @@ export const users = sqliteTable("users", {
   role: text("role").notNull(),
   area: text("area").notNull(),
   color: text("color").notNull(),
+  active: integer("active").notNull().default(1),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

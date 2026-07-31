@@ -1322,6 +1322,42 @@ textarea:focus-visible {
   font-size: 1rem;
 }
 
+.member-inactive {
+  opacity: 0.6;
+}
+
+.online-dot.offline {
+  background: var(--faint);
+}
+
+.member-admin {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.member-admin select {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.4rem;
+  background: #fff;
+  font-size: 0.6rem;
+}
+
+.member-admin button {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.4rem;
+  background: #fff;
+  color: var(--red);
+  font-size: 0.6rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .automation-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

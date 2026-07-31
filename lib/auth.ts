@@ -39,7 +39,7 @@ async function derivePasswordHash(password: string, salt: Uint8Array) {
     ["deriveBits"],
   );
   const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as BufferSource, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
     keyMaterial,
     256,
   );
@@ -99,10 +99,15 @@ export async function getCurrentUser() {
     .where(eq(sessions.token, token));
 
   if (!row || new Date(row.session.expiresAt).getTime() < Date.now()) return null;
+  if (!row.user.active) return null;
 
   return row.user;
 }
 
 export function unauthorized() {
   return Response.json({ error: "No autenticado" }, { status: 401 });
+}
+
+export function forbidden() {
+  return Response.json({ error: "No autorizado" }, { status: 403 });
 }

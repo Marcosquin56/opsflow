@@ -57,44 +57,18 @@ type RequestItem = {
   activity: Activity[];
 };
 
-const team = [
-  {
-    name: "Marcos Quintana",
-    initials: "MQ",
-    role: "Administrador",
-    area: "Automatización",
-    active: 4,
-    resolved: 18,
-    color: "violet",
-  },
-  {
-    name: "Lucía Benítez",
-    initials: "LB",
-    role: "Analista",
-    area: "Finanzas",
-    active: 3,
-    resolved: 23,
-    color: "blue",
-  },
-  {
-    name: "Diego Ferreira",
-    initials: "DF",
-    role: "Analista",
-    area: "Operaciones",
-    active: 2,
-    resolved: 16,
-    color: "orange",
-  },
-  {
-    name: "Sofía Acosta",
-    initials: "SA",
-    role: "Solicitante",
-    area: "Recursos Humanos",
-    active: 1,
-    resolved: 7,
-    color: "green",
-  },
-];
+type Member = {
+  id: string;
+  name: string;
+  email: string;
+  initials: string;
+  role: Role;
+  area: string;
+  color: string;
+  active: boolean;
+  activeRequests: number;
+  resolvedRequests: number;
+};
 
 const roleHelper: Record<Role, string> = {
   Administrador: "Acceso completo",
@@ -246,6 +220,7 @@ export function DashboardView({ currentUser }: { currentUser: CurrentUser }) {
   const [showPalette, setShowPalette] = useState(false);
   const [toast, setToast] = useState("");
   const [automations, setAutomations] = useState<AutomationRule[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
   const role = currentUser.role;
@@ -296,17 +271,20 @@ export function DashboardView({ currentUser }: { currentUser: CurrentUser }) {
 
     async function loadData() {
       try {
-        const [requestsRes, automationsRes] = await Promise.all([
+        const [requestsRes, automationsRes, usersRes] = await Promise.all([
           fetch("/api/requests"),
           fetch("/api/automations"),
+          fetch("/api/users"),
         ]);
         const requestsData = (await requestsRes.json()) as { requests?: RequestItem[] };
         const automationsData = (await automationsRes.json()) as {
           automations?: AutomationRule[];
         };
+        const usersData = (await usersRes.json()) as { users?: Member[] };
         if (cancelled) return;
         setRequests(requestsData.requests ?? []);
         setAutomations(automationsData.automations ?? []);
+        setMembers(usersData.users ?? []);
       } catch {
         if (!cancelled) notify("No se pudo conectar con el backend");
       } finally {
@@ -338,6 +316,41 @@ export function DashboardView({ currentUser }: { currentUser: CurrentUser }) {
       current.map((item) => (item.id === id ? updated : item)),
     );
     notify(`"${updated.name}" ${updated.status === "active" ? "activada" : "pausada"}`);
+  }
+
+  async function changeMemberRole(id: string, nextRole: Role) {
+    const response = await fetch("/api/users/role", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, role: nextRole }),
+    });
+    const data = (await response.json()) as { error?: string };
+    if (!response.ok) {
+      notify(data.error ?? "No se pudo cambiar el rol");
+      return;
+    }
+    setMembers((current) =>
+      current.map((member) => (member.id === id ? { ...member, role: nextRole } : member)),
+    );
+    notify("Rol actualizado");
+  }
+
+  async function toggleMemberActive(id: string) {
+    const response = await fetch("/api/users/toggle-active", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = (await response.json()) as { active?: boolean; error?: string };
+    if (!response.ok || data.active === undefined) {
+      notify(data.error ?? "No se pudo actualizar la cuenta");
+      return;
+    }
+    const nextActive = data.active;
+    setMembers((current) =>
+      current.map((member) => (member.id === id ? { ...member, active: nextActive } : member)),
+    );
+    notify(nextActive ? "Cuenta activada" : "Cuenta desactivada");
   }
 
   useEffect(() => {
@@ -552,6 +565,7 @@ export function DashboardView({ currentUser }: { currentUser: CurrentUser }) {
               <Dashboard
                 automations={automations}
                 firstName={profile.name.split(" ")[0]}
+                members={members}
                 metrics={metrics}
                 requests={requests}
                 setActiveView={setActiveView}
@@ -573,7 +587,14 @@ export function DashboardView({ currentUser }: { currentUser: CurrentUser }) {
             {activeView === "automations" && (
               <AutomationsView automations={automations} toggle={toggleAutomation} />
             )}
-            {activeView === "team" && <TeamView />}
+            {activeView === "team" && (
+              <TeamView
+                changeMemberRole={changeMemberRole}
+                currentUser={currentUser}
+                members={members}
+                toggleMemberActive={toggleMemberActive}
+              />
+            )}
             {activeView === "analytics" && <AnalyticsView requests={requests} />}
           </>
         )}
@@ -617,6 +638,7 @@ export function DashboardView({ currentUser }: { currentUser: CurrentUser }) {
 function Dashboard({
   automations,
   firstName,
+  members,
   metrics,
   requests,
   setActiveView,
@@ -624,6 +646,7 @@ function Dashboard({
 }: {
   automations: AutomationRule[];
   firstName: string;
+  members: Member[];
   metrics: {
     open: number;
     critical: number;
@@ -634,6 +657,10 @@ function Dashboard({
   setActiveView: (view: View) => void;
   setSelectedId: (id: string) => void;
 }) {
+  const workload = members
+    .filter((member) => member.role !== "Solicitante")
+    .sort((a, b) => b.activeRequests - a.activeRequests)
+    .slice(0, 3);
   const activeAutomations = automations.filter((rule) => rule.status === "active");
   const openRequests = requests.filter((request) => request.status !== "Resuelto");
 
@@ -773,23 +800,23 @@ function Dashboard({
               <h2>Carga del equipo</h2>
             </div>
           </div>
-          {team.slice(0, 3).map((member, index) => (
-            <div className="workload-row" key={member.name}>
-              <Avatar
-                color={member.color}
-                initials={member.initials}
-                small
-              />
-              <span>
-                <strong>{member.name}</strong>
-                <small>{member.active} solicitudes activas</small>
-              </span>
-              <div className="workload-bar">
-                <i style={{ width: `${[72, 58, 40][index]}%` }} />
+          {workload.length === 0 && <p className="form-note">Todavía no hay responsables con carga asignada.</p>}
+          {workload.map((member) => {
+            const percent = Math.min(100, member.activeRequests * 20);
+            return (
+              <div className="workload-row" key={member.id}>
+                <Avatar color={member.color} initials={member.initials} small />
+                <span>
+                  <strong>{member.name}</strong>
+                  <small>{member.activeRequests} solicitudes activas</small>
+                </span>
+                <div className="workload-bar">
+                  <i style={{ width: `${percent}%` }} />
+                </div>
+                <b>{percent}%</b>
               </div>
-              <b>{[72, 58, 40][index]}%</b>
-            </div>
-          ))}
+            );
+          })}
         </article>
 
         <article className="panel activity-panel">
@@ -1058,7 +1085,20 @@ function AutomationsView({
   );
 }
 
-function TeamView() {
+function TeamView({
+  changeMemberRole,
+  currentUser,
+  members,
+  toggleMemberActive,
+}: {
+  changeMemberRole: (id: string, role: Role) => void;
+  currentUser: CurrentUser;
+  members: Member[];
+  toggleMemberActive: (id: string) => void;
+}) {
+  const isAdmin = currentUser.role === "Administrador";
+  const activeCount = members.filter((member) => member.active).length;
+
   return (
     <div className="page">
       <section className="page-heading">
@@ -1068,31 +1108,51 @@ function TeamView() {
           <p>Responsables que atienden y coordinan las solicitudes.</p>
         </div>
         <div className="heading-badge">
-          <span className="pulse-dot" />4 integrantes activos
+          <span className="pulse-dot" />
+          {activeCount} {activeCount === 1 ? "integrante activo" : "integrantes activos"}
         </div>
       </section>
 
       <section className="team-grid">
-        {team.map((member) => (
-          <article className="member-card" key={member.name}>
+        {members.map((member) => (
+          <article
+            className={`member-card${member.active ? "" : " member-inactive"}`}
+            key={member.id}
+          >
             <div className="member-top">
               <Avatar color={member.color} initials={member.initials} />
-              <span className="online-dot" />
+              <span className={member.active ? "online-dot" : "online-dot offline"} />
             </div>
             <h2>{member.name}</h2>
             <p>
               {member.role} · {member.area}
+              {!member.active && " · Desactivada"}
             </p>
             <div className="member-stats">
               <span>
-                <strong>{member.active}</strong>
+                <strong>{member.activeRequests}</strong>
                 Activas
               </span>
               <span>
-                <strong>{member.resolved}</strong>
+                <strong>{member.resolvedRequests}</strong>
                 Resueltas
               </span>
             </div>
+            {isAdmin && member.id !== currentUser.id && (
+              <div className="member-admin">
+                <select
+                  onChange={(event) => changeMemberRole(member.id, event.target.value as Role)}
+                  value={member.role}
+                >
+                  <option value="Administrador">Administrador</option>
+                  <option value="Analista">Analista</option>
+                  <option value="Solicitante">Solicitante</option>
+                </select>
+                <button onClick={() => toggleMemberActive(member.id)} type="button">
+                  {member.active ? "Desactivar" : "Activar"}
+                </button>
+              </div>
+            )}
           </article>
         ))}
       </section>

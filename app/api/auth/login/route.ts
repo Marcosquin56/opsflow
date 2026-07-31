@@ -18,6 +18,9 @@ export async function POST(request: Request) {
     if (!user || !(await verifyPassword(password, user.passwordSalt, user.passwordHash))) {
       return Response.json({ error: "Email o contraseña incorrectos" }, { status: 401 });
     }
+    if (!user.active) {
+      return Response.json({ error: "Esta cuenta fue desactivada" }, { status: 403 });
+    }
 
     const { token, expiresAt } = await createSession(user.id);
     await setSessionCookie(token, expiresAt);
